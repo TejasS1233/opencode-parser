@@ -10,6 +10,8 @@ An [opencode](https://opencode.ai) plugin that parses any file into structured t
 }
 ```
 
+Or install via CLI: `opencode plugin opencode-parser -g`
+
 Or copy `src/` into `.opencode/tools/` for a local zero-config setup.
 
 ## Supported formats
