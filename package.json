@@ -1,0 +1,48 @@
+{
+  "name": "opencode-parser",
+  "version": "1.0.0",
+  "description": "Parse any file in opencode — PDF, DOCX, XLSX, PPTX, images (OCR), EPUB, HTML, IPYNB, archives, and plain text",
+  "type": "module",
+  "main": "src/index.ts",
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "parser",
+    "pdf",
+    "docx",
+    "xlsx",
+    "pptx",
+    "ocr",
+    "epub",
+    "ipynb",
+    "csv",
+    "document-parser"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tejas/opencode-parser"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "jszip": "^3.10.1",
+    "mammoth": "^1.8.0",
+    "pdf-parse": "^1.1.1",
+    "tesseract.js": "^5.1.1",
+    "xlsx": "^0.18.5"
+  },
+  "peerDependencies": {
+    "@opencode-ai/plugin": ">=1.0.0"
+  },
+  "devDependencies": {
+    "@opencode-ai/plugin": "^1.0.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.0.0"
+  }
+}
