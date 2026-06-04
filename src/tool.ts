@@ -9,6 +9,8 @@ export const parseTool = tool({
     extractTables: tool.schema.boolean().optional().describe("Extract tables from documents/spreadsheets (default: true)"),
     extractImages: tool.schema.boolean().optional().describe("Extract text from images via OCR (default: false). Requires tesseract.js language data."),
     maxPages: tool.schema.number().optional().describe("Maximum pages/slides/sheets/cells to process (default: no limit or per-format default)"),
+    save: tool.schema.boolean().optional().describe("Save the full parsed output as a Markdown file alongside the original (bypasses maxChars truncation)"),
+    outputPath: tool.schema.string().optional().describe("Custom path to save the Markdown export (overrides save path)"),
   },
   async execute(args, context) {
     const filePath = args.filePath
@@ -27,7 +29,35 @@ export const parseTool = tool({
       maxPages: args.maxPages,
     })
 
-    return formatResult(result)
+    const output = formatResult(result)
+
+    const shouldSave = args.save || !!args.outputPath
+    if (shouldSave) {
+      const baseName = result.fileName.replace(/\.[^.]+$/, "") + ".md"
+      const resolvedOutput = args.outputPath
+        ? (args.outputPath.startsWith("/") || args.outputPath.match(/^[A-Za-z]:\\/)
+          ? args.outputPath
+          : `${cwd}/${args.outputPath.replace(/\\/g, "/")}`)
+        : `${cwd}/${baseName}`
+
+      const fullResult = await parseFile({
+        filePath: resolvedPath,
+        maxChars: undefined,
+        extractTables: args.extractTables ?? true,
+        extractImages: args.extractImages ?? false,
+        maxPages: args.maxPages,
+      })
+      const fullOutput = formatResult(fullResult)
+
+      const dir = resolvedOutput.substring(0, resolvedOutput.lastIndexOf("/"))
+      if (dir) {
+        const { mkdirSync } = await import("fs")
+        mkdirSync(dir, { recursive: true })
+      }
+      Bun.write(resolvedOutput, fullOutput)
+    }
+
+    return output
   },
 })
 

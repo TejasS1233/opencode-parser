@@ -40,15 +40,22 @@ Parse @report.pdf and give me a summary
 parse the spreadsheet at @data.xlsx but only the first 3 sheets
 ```
 
+```
+parse @report.pdf and save the full output
+```
+
+
 ### Options
 
 | Option | Default | Description |
 |--------|---------|-------------|
 | `filePath` | — | Path to the file (required) |
-| `maxChars` | 50000 | Limit output chars (`-1` for unlimited) |
+| `maxChars` | 50000 | Limit output chars (`-1` for unlimited). Pass `-1` to get the full document. |
 | `extractTables` | true | Extract tables from docs/spreadsheets |
 | `extractImages` | false | Enable OCR for images |
 | `maxPages` | varies | Limit pages/slides/sheets processed |
+| `save` | false | Save the full parsed output as a `.md` file alongside the original (no truncation) |
+| `outputPath` | — | Custom path for the Markdown export (overrides `save` path) |
 
 ## How it works
 
