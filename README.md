@@ -2,9 +2,7 @@
 
 An [opencode](https://opencode.ai) plugin that parses any file into structured text the LLM can work with.
 
-
 https://github.com/user-attachments/assets/ed9d6ee7-d30b-43d5-83e0-4e09dafaa422
-
 
 ## Install
 
