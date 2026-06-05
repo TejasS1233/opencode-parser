@@ -18,7 +18,8 @@ export async function parseImage(buffer: Uint8Array, fileName: string, fileSize:
   try {
     const Tesseract = await import("tesseract.js")
     const buf = Buffer.from(buffer)
-    const { data } = await Tesseract.recognize(buf, "eng", {
+    const lang = options.ocrLang || "eng"
+    const { data } = await Tesseract.recognize(buf, lang, {
       logger: () => {},
     })
 

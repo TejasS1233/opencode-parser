@@ -3,6 +3,7 @@ export interface ParseOptions {
   maxChars?: number
   extractTables?: boolean
   extractImages?: boolean
+  ocrLang?: string
   maxPages?: number
 }
 

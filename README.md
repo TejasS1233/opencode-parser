@@ -57,6 +57,7 @@ parse @report.pdf and save the full output
 | `maxChars` | 50000 | Limit output chars (`-1` for unlimited). Pass `-1` to get the full document. |
 | `extractTables` | true | Extract tables from docs/spreadsheets |
 | `extractImages` | false | Enable OCR for images |
+| `ocrLang` | "eng" | OCR language for tesseract.js (e.g. "eng", "fra", "ara") |
 | `maxPages` | varies | Limit pages/slides/sheets processed |
 | `save` | false | Save the full parsed output as a `.md` file alongside the original (no truncation) |
 | `outputPath` | — | Custom path for the Markdown export (overrides `save` path) |
