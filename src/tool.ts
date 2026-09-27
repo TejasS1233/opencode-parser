@@ -1,133 +1,114 @@
-import { tool } from "@opencode-ai/plugin"
+import type { ToolDomain } from "@opencode/plugin/promise/tool"
+import { mkdir } from "node:fs/promises"
+import path from "node:path"
 import { parseFile } from "./orchestrator.ts"
 import type { ParseResult } from "./types.ts"
 
-export const parseTool = tool({
-  description: "Parse and extract text/content from any file type. Supports PDF, DOCX, XLSX, CSV, PPTX, images (OCR), EPUB, HTML, XML, Markdown, Jupyter Notebooks (.ipynb), ZIP, RAR, 7z, TAR, GZip, and plain text files. Returns structured output with metadata, extracted text, tables, and optional OCR.",
-  args: {
-    filePath: tool.schema.string().describe("Absolute or relative path to the file to parse"),
-    maxChars: tool.schema.number().optional().describe("Maximum characters to return (default: 50000). Use -1 for no limit."),
-    extractTables: tool.schema.boolean().optional().describe("Extract tables from documents/spreadsheets (default: true)"),
-    extractImages: tool.schema.boolean().optional().describe("Extract text from images via OCR (default: false). Requires tesseract.js language data."),
-    ocrLang: tool.schema.string().optional().describe("OCR language (default: eng). See tesseract.js supported languages."),
-    maxPages: tool.schema.number().optional().describe("Maximum pages/slides/sheets/cells to process (default: no limit or per-format default)"),
-    save: tool.schema.boolean().optional().describe("Save the full parsed output as a Markdown file alongside the original (bypasses maxChars truncation)"),
-    outputPath: tool.schema.string().optional().describe("Custom path to save the Markdown export (overrides save path)"),
-  },
-  async execute(args, context) {
-    const filePath = args.filePath
-    const cwd = context.directory || process.cwd()
-    const resolvedPath = filePath.startsWith("/") || filePath.match(/^[A-Za-z]:\\/)
-      ? filePath
-      : `${cwd}/${filePath.replace(/\\/g, "/")}`
+type ParseArgs = {
+  filePath: string
+  maxChars?: number
+  extractTables?: boolean
+  extractImages?: boolean
+  ocrLang?: string
+  maxPages?: number
+  save?: boolean
+  outputPath?: string
+}
 
-    const maxChars = args.maxChars != null && args.maxChars < 0 ? undefined : (args.maxChars ?? 50000)
+export async function registerParseTool(tools: ToolDomain, directory: string): Promise<void> {
+  await tools.transform((editor) => {
+    editor.add({
+      name: "parse",
+      description: "Parse and extract text/content from any file type. Supports PDF, DOCX, XLSX, CSV, PPTX, images (OCR), EPUB, HTML, XML, Markdown, Jupyter Notebooks (.ipynb), ZIP, RAR, 7z, TAR, GZip, and plain text files. Returns structured output with metadata, extracted text, tables, and optional OCR.",
+      input: {
+        type: "object",
+        properties: {
+          filePath: { type: "string", description: "Absolute or relative path to the file to parse" },
+          maxChars: { type: "number", description: "Maximum characters to return (default: 50000). Use -1 for no limit." },
+          extractTables: { type: "boolean", description: "Extract tables from documents/spreadsheets (default: true)" },
+          extractImages: { type: "boolean", description: "Extract text from images via OCR (default: false). Requires tesseract.js language data." },
+          ocrLang: { type: "string", description: "OCR language (default: eng). See tesseract.js supported languages." },
+          maxPages: { type: "number", description: "Maximum pages/slides/sheets/cells to process" },
+          save: { type: "boolean", description: "Save the full parsed output as a Markdown file alongside the original" },
+          outputPath: { type: "string", description: "Custom path for the Markdown export" },
+        },
+        required: ["filePath"],
+        additionalProperties: false,
+      },
+      async execute(input) {
+        const args = input as ParseArgs
+        const filePath = resolvePath(args.filePath, directory)
+        const parseOptions = {
+          filePath,
+          maxChars: args.maxChars != null && args.maxChars < 0 ? Number.MAX_SAFE_INTEGER : (args.maxChars ?? 50000),
+          extractTables: args.extractTables ?? true,
+          extractImages: args.extractImages ?? false,
+          ocrLang: args.ocrLang ?? "eng",
+          maxPages: args.maxPages,
+        }
+        const result = await parseFile(parseOptions)
 
-    const parseOpts = {
-      filePath: resolvedPath,
-      maxChars,
-      extractTables: args.extractTables ?? true,
-      extractImages: args.extractImages ?? false,
-      ocrLang: args.ocrLang ?? "eng",
-      maxPages: args.maxPages,
-    }
+        if (args.save || args.outputPath) {
+          const baseName = result.fileName.replace(/\.[^.]+$/, "") + ".md"
+          const outputPath = args.outputPath ? resolvePath(args.outputPath, directory) : path.join(path.dirname(filePath), baseName)
+          const fullResult = await parseFile({ ...parseOptions, maxChars: Number.MAX_SAFE_INTEGER })
+          await mkdir(path.dirname(outputPath), { recursive: true })
+          await Bun.write(outputPath, formatResult(fullResult))
+        }
 
-    const result = await parseFile(parseOpts)
+        return { content: formatResult(result) }
+      },
+    })
+  })
+}
 
-    const output = formatResult(result)
-
-    const shouldSave = args.save || !!args.outputPath
-    if (shouldSave) {
-      const baseName = result.fileName.replace(/\.[^.]+$/, "") + ".md"
-      const resolvedOutput = args.outputPath
-        ? (args.outputPath.startsWith("/") || args.outputPath.match(/^[A-Za-z]:\\/)
-          ? args.outputPath
-          : `${cwd}/${args.outputPath.replace(/\\/g, "/")}`)
-        : `${cwd}/${baseName}`
-
-      const fullResult = await parseFile({
-        ...parseOpts,
-        maxChars: undefined,
-      })
-      const fullOutput = formatResult(fullResult)
-
-      const dir = resolvedOutput.substring(0, resolvedOutput.lastIndexOf("/"))
-      if (dir) {
-        const { mkdirSync } = await import("fs")
-        mkdirSync(dir, { recursive: true })
-      }
-      Bun.write(resolvedOutput, fullOutput)
-    }
-
-    return output
-  },
-})
+function resolvePath(value: string, directory: string): string {
+  return path.isAbsolute(value) ? value : path.resolve(directory, value)
+}
 
 function formatResult(result: ParseResult): string {
   const lines: string[] = []
+  lines.push(`## ${result.fileName} (${result.type.toUpperCase()}, ${formatSize(result.fileSize)})`, "")
 
-  const typeLabel = result.type.toUpperCase()
-  const sizeLabel = formatSize(result.fileSize)
-  lines.push(`## ${result.fileName} (${typeLabel}, ${sizeLabel})`)
-  lines.push("")
-
-  const metaEntries = Object.entries(result.meta).filter(([_, v]) => v != null && v !== "")
-  if (metaEntries.length > 0) {
-    for (const [key, val] of metaEntries) {
-      const label = key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase())
-      lines.push(`- **${label}**: ${val}`)
-    }
-    lines.push("")
+  const metaEntries = Object.entries(result.meta).filter(([, value]) => value != null && value !== "")
+  for (const [key, value] of metaEntries) {
+    const label = key.replace(/([A-Z])/g, " $1").replace(/^./, (value) => value.toUpperCase())
+    lines.push(`- **${label}**: ${value}`)
   }
+  if (metaEntries.length) lines.push("")
 
-  const wordCount = result.meta?.wordCount ?? countWords(result.content?.text || "")
-  const charCount = result.content?.text?.length || 0
-  lines.push(`- Words: ${wordCount} | Chars: ${charCount.toLocaleString()}${result.meta?.pages ? ` | Pages: ${result.meta.pages}` : ""}`)
-  lines.push("")
+  const wordCount = result.meta.wordCount ?? countWords(result.content.text)
+  lines.push(`- Words: ${wordCount} | Chars: ${result.content.text.length.toLocaleString()}`, "")
 
   if (result.content.truncated) {
-    lines.push(`> **Note:** Content was truncated (${result.content.returnedChars.toLocaleString()} of ${result.content.totalChars.toLocaleString()} chars returned). Use maxChars for a higher limit.`)
-    lines.push("")
+    lines.push(`> **Note:** Content was truncated (${result.content.returnedChars.toLocaleString()} of ${result.content.totalChars.toLocaleString()} chars returned). Use maxChars for a higher limit.`, "")
   }
 
-  if (result.tables && result.tables.length > 0) {
-    lines.push(`### Tables (${result.tables.length})`)
-    lines.push("")
-    for (let i = 0; i < Math.min(result.tables.length, 5); i++) {
-      const t = result.tables[i]
-      if (t.name) lines.push(`**${t.name}:**`)
-      if (t.headers.length > 0) lines.push(`| ${t.headers.join(" | ")} |`)
-      if (t.headers.length > 0) lines.push(`| ${t.headers.map(() => "---").join(" | ")} |`)
-      for (const row of t.rows.slice(0, 20)) {
-        lines.push(`| ${row.join(" | ")} |`)
+  if (result.tables?.length) {
+    lines.push(`### Tables (${result.tables.length})`, "")
+    for (const table of result.tables.slice(0, 5)) {
+      if (table.name) lines.push(`**${table.name}:**`)
+      if (table.headers.length) {
+        lines.push(`| ${table.headers.join(" | ")} |`)
+        lines.push(`| ${table.headers.map(() => "---").join(" | ")} |`)
       }
-      if (t.rows.length > 20) lines.push(`| _... ${t.rows.length - 20} more rows_ |`)
+      for (const row of table.rows.slice(0, 20)) lines.push(`| ${row.join(" | ")} |`)
+      if (table.rows.length > 20) lines.push(`| _... ${table.rows.length - 20} more rows_ |`)
       lines.push("")
     }
-    if (result.tables.length > 5) {
-      lines.push(`_... ${result.tables.length - 5} more tables available_`)
-      lines.push("")
-    }
+    if (result.tables.length > 5) lines.push(`_... ${result.tables.length - 5} more tables available_`, "")
   }
 
-  if (result.archiveContents && result.archiveContents.length > 0) {
-    lines.push(`### Archive Contents (${result.archiveContents.length} entries)`)
-    lines.push("")
-    for (const entry of result.archiveContents.slice(0, 50)) {
-      lines.push(`- ${entry}`)
-    }
+  if (result.archiveContents?.length) {
+    lines.push(`### Archive Contents (${result.archiveContents.length} entries)`, "")
+    lines.push(...result.archiveContents.slice(0, 50).map((entry) => `- ${entry}`))
     if (result.archiveContents.length > 50) {
       lines.push(`- _... ${result.archiveContents.length - 50} more entries_`)
     }
     lines.push("")
   }
 
-  if (result.content.text) {
-    lines.push("### Content")
-    lines.push("")
-    lines.push(result.content.text)
-  }
-
+  if (result.content.text) lines.push("### Content", "", result.content.text)
   return lines.join("\n")
 }
 
@@ -139,6 +120,5 @@ function formatSize(bytes: number): string {
 
 function countWords(text: string): number {
   const cleaned = text.replace(/[\x00-\x1F]/g, " ").trim()
-  if (!cleaned) return 0
-  return cleaned.split(/\s+/).length
+  return cleaned ? cleaned.split(/\s+/).length : 0
 }

@@ -1,12 +1,9 @@
-import type { Plugin } from "@opencode-ai/plugin"
-import { parseTool } from "./tool.ts"
+import { Plugin } from "@opencode/plugin"
+import { registerParseTool } from "./tool.ts"
 
-export const plugin: Plugin = async () => {
-  return {
-    tool: {
-      parse: parseTool,
-    },
-  }
-}
-
-export default plugin
+export default Plugin.define({
+  id: "opencode-parser",
+  async setup(ctx) {
+    await registerParseTool(ctx.tool, ctx.location.directory)
+  },
+})
