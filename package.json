@@ -1,6 +1,6 @@
 {
   "name": "opencode-parser",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Parse any file in opencode. Supports PDF, DOCX, XLSX, PPTX, images with OCR, EPUB, HTML, XML, Markdown, Jupyter notebooks, CSV, TSV, ZIP, RAR, 7z, TAR, GZip, JSON, YAML, TOML, INI, and plain text. Detects format by magic bytes. Extracts text, tables, metadata, and exports to Markdown.",
   "type": "module",
   "main": "src/index.ts",
@@ -47,27 +47,17 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/TejasS1233/opencode-parser.git"
+    "url": "git+https://github.com/TejasS1233/opencode-parser.git"
   },
   "dependencies": {
+    "@opencode-ai/plugin": "^1.0.0",
+    "@opencode/plugin": "^2.0.18",
     "cheerio": "^1.0.0",
     "jszip": "^3.10.1",
     "mammoth": "^1.8.0",
     "pdf-parse": "^1.1.1",
     "tesseract.js": "^5.1.1",
     "xlsx": "^0.18.5"
-  },
-  "peerDependencies": {
-    "@opencode-ai/plugin": ">=1.18.29",
-    "@opencode/plugin": ">=2.0.0"
-  },
-  "peerDependenciesMeta": {
-    "@opencode-ai/plugin": {
-      "optional": true
-    },
-    "@opencode/plugin": {
-      "optional": true
-    }
   },
   "devDependencies": {
     "@opencode-ai/plugin": "^1.0.0",
