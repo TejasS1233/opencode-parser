@@ -2,15 +2,26 @@
 
 An [opencode](https://opencode.ai) plugin that parses any file into structured text the LLM can work with.
 
-This plugin uses the OpenCode V2 plugin API.
+This plugin supports both OpenCode V1 and V2 from the same package.
+V1 calls `server()`, V2 calls `setup()` (requires OpenCode V1 >= 1.18.29 for the object entrypoint).
 
 https://github.com/user-attachments/assets/ed9d6ee7-d30b-43d5-83e0-4e09dafaa422
 
 ## Install
 
+### OpenCode V2
+
 ```json
 {
   "plugins": ["opencode-parser"]
+}
+```
+
+### OpenCode V1
+
+```json
+{
+  "plugin": ["opencode-parser"]
 }
 ```
 

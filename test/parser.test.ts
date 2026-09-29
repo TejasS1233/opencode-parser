@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
 import { expect, test } from "bun:test"
-import { registerParseTool } from "../src/tool.ts"
+import { registerParseTool } from "../src/tool-v2.ts"
 import { detectType } from "../src/utils/detect.ts"
 
 test("detects a PDF from magic bytes", async () => {
