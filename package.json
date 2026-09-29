@@ -1,6 +1,6 @@
 {
   "name": "opencode-parser",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "Parse any file in opencode. Supports PDF, DOCX, XLSX, PPTX, images with OCR, EPUB, HTML, XML, Markdown, Jupyter notebooks, CSV, TSV, ZIP, RAR, 7z, TAR, GZip, JSON, YAML, TOML, INI, and plain text. Detects format by magic bytes. Extracts text, tables, metadata, and exports to Markdown.",
   "type": "module",
   "main": "src/index.ts",
@@ -8,6 +8,7 @@
     "src"
   ],
   "scripts": {
+    "test": "bun test",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [
@@ -57,11 +58,23 @@
     "xlsx": "^0.18.5"
   },
   "peerDependencies": {
-    "@opencode-ai/plugin": ">=1.0.0"
+    "@opencode-ai/plugin": ">=1.18.29",
+    "@opencode/plugin": ">=2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@opencode-ai/plugin": {
+      "optional": true
+    },
+    "@opencode/plugin": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@opencode-ai/plugin": "^1.0.0",
+    "@opencode/plugin": "^2.0.18",
+    "@types/bun": "^1.4.2",
     "@types/node": "^22.0.0",
+    "@types/pdf-parse": "^1.1.5",
     "typescript": "^5.0.0"
   }
 }
